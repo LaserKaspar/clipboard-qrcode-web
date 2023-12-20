@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Code Renderer</title>
+    <script src="./qrcode.min.js"></script>
+</head>
+<body>
+    <style>
+        :root {
+            height: 100%;
+        }
+        body {
+            margin: 0;
+            height: 100%;
+            
+            display: grid;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            font-family: 'Courier New', Courier, monospace;
+        }
+        #clickToStart {
+            text-align: center;
+        }
+        #qrcode {
+            width: min(700px, min(100vh, 100vw));
+            height: min(700px, min(100vh, 100vw));
+        }
+        #qrcode > * {
+            padding: 60px;
+            width: calc(100% - 120px);
+            height: calc(100% - 120px);
+        }
+        #qrcode img {
+            image-rendering: pixelated;
+        }
+
+        #popup {
+            display: none;
+            position: fixed;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #333;
+            color: #fff;
+            padding: 10px;
+            font-size: 20px;
+            text-align: center;
+            width: 400px;
+            border-radius: 5px;
+        }
+    </style>
+    </style>
+
+    <div id="clickToStart">
+        <h1>Click to start reading the clipboard</h1>
+        (This is a browser limitation)
+    </div>
+    <div id="qrcode"></div>
+    <div id="popup">This is a popup!</div>
+
+
+    <script>
+        window.addEventListener('click', initialClick, { once: true });
+
+        var qrcode;
+        var popup = document.getElementById("popup");
+
+        async function initialClick() {
+            try {
+                await navigator.clipboard.readText()
+                popup.style.display = "none";
+            }
+            catch (e) {
+                window.addEventListener('click', initialClick, { once: true });
+                popup.textContent = e.message;
+                popup.style.display = "block";
+                throw new Error(e);
+            }
+
+            qrcode = new QRCode(document.getElementById("qrcode"), {
+                text: window.location
+            });
+
+            updateQR();
+            document.getElementById("clickToStart").style.display = "none";
+
+            let interval = setInterval(updateQR, 1000);
+
+            window.onblur = () => {
+                clearInterval(interval);
+
+                popup.textContent = "You need the page to be focused in order to keep it updated.";
+                popup.style.display = "block";
+            }
+            window.onfocus = () => {
+                updateQR();
+                interval = setInterval(updateQR, 1000);
+                popup.style.display = "none";
+            }
+        }
+
+        function updateQR() {
+            navigator.clipboard.readText()
+            .then(clipboardText => {
+                qrcode.makeCode(clipboardText)
+            })
+            .catch(error => {
+                console.error("Error reading from clipboard: ", error);
+            });
+        }
+    </script>
+</body>
+</html>
